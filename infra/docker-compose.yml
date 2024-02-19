@@ -1,0 +1,99 @@
+---
+version: '3.8'
+services:
+
+  debezium-kafka:
+    image: bitnami/kafka:3.6
+    container_name: debezium-kafka
+    hostname: debezium-kafka
+    restart: always
+    ports:
+      - '9092:9092'
+    environment:
+      KAFKA_CFG_NODE_ID: 1
+      KAFKA_KRAFT_CLUSTER_ID: nhtRzo03R12my6ysuQPefQ # base64 UUID Generated using bin/kafka-storage.sh random-uuid command
+      KAFKA_CFG_PROCESS_ROLES: controller,broker
+      KAFKA_CFG_LISTENERS: INTERNAL://debezium-kafka:29092,CONTROLLER://debezium-kafka:29093,EXTERNAL://0.0.0.0:9092
+      KAFKA_CFG_ADVERTISED_LISTENERS: INTERNAL://debezium-kafka:29092,EXTERNAL://debezium-kafka:9092
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@debezium-kafka:29093
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+    networks:
+      - event-driven-network
+
+
+  debezium-connect:
+    image: debezium/connect:2.5.1.Final
+    container_name: debezium-connect
+    hostname: debezium-connect
+    restart: always
+    ports:
+      - '8083:8083'
+    environment:
+      BOOTSTRAP_SERVERS: debezium-kafka:29092
+      GROUP_ID: 1
+      CONFIG_STORAGE_TOPIC: my_connect_configs
+      OFFSET_STORAGE_TOPIC: my_connect_offsets
+      STATUS_STORAGE_TOPIC: my_connect_statuses
+      ENABLE_DEBEZIUM_SCRIPTING: 'true'
+    links:
+      - debezium-kafka
+      - postgres
+      - mssql
+    networks:
+      - event-driven-network
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    hostname: mssql
+    container_name: mssql
+    ports:
+      - "1433:1433"
+    environment:
+      ACCEPT_EULA: 'Y'
+      MSSQL_PID: Standard
+      MSSQL_AGENT_ENABLED: true
+      MSSQL_SA_PASSWORD_FILE: /run/secrets/mssql_password
+    secrets:
+      - mssql_password
+    volumes:
+      - mssqldata:/var/opt/mssql
+      - ./mssql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - event-driven-network
+
+  postgres:
+    image: debezium/postgres:16-alpine
+    hostname: postgres
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - event-driven-network
+
+secrets:
+  mssql_password:
+    file: mssql/mssql.txt
+  postgres_password:
+    file: postgres/postgres.txt
+
+volumes:
+  mssqldata:
+    name: mssqldata
+    driver: local
+  pgdata:
+    name: pgdata
+    driver: local
+
+networks:
+  event-driven-network:
+    name: event-driven-network
+    driver: bridge
+    external: false

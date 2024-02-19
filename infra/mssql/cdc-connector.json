@@ -1,0 +1,20 @@
+{
+  "name": "book-orders-connector",
+  "config": {
+    "connector.class" : "io.debezium.connector.sqlserver.SqlServerConnector",
+    "tasks.max" : "1",
+    "database.server.name": "books-db",
+    "database.hostname" : "mssql",
+    "database.port" : "1433",
+    "database.user" : "sa",
+    "database.password" : "RamI**2024",
+    "database.history.kafka.bootstrap.servers" : "debezium-kafka:9092",
+    "database.history.kafka.topic": "schema-changes.books",
+    "topic.prefix": "order",
+    "database.names": "BOOK_EVENTS",
+    "database.encrypt": "false",
+    "schema.history.internal.kafka.topic": "book-schema",
+    "schema.history.internal.kafka.bootstrap.servers": "debezium-kafka:9092"
+
+  }
+}

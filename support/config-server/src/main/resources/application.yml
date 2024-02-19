@@ -1,0 +1,60 @@
+spring:
+  application:
+    name: config-server
+  profiles:
+    active: git
+  cloud:
+    config:
+      server:
+        git:
+          uri: https://github.com/ramibahrouni/config-server-repo.git
+          clone-on-start: true
+          username: ${GITHUB_USER:ramibahrouni}
+          password: ${GITHUB_TOKEN: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}
+    refresh:
+      enabled: false
+  security:
+    user:
+      name: ${CONFIG_USER:config-user}
+      password: ${CONFIG_PASS:config-pass}
+  main:
+    banner-mode: off
+
+server:
+  port: ${CONFIG_SERVER_PORT:8889}
+
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    enabled: true
+    healthcheck:
+      enabled: true
+    serviceUrl:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
+
+logging:
+  group:
+    tomcat: org.apache.catalina, org.apache.coyote, org.apache.tomcat
+  level:
+    root: info
+    org.springframework.cloud.sleuth: info
+    org.springframework.web: warn
+    tomcat: warn
+    com.netflix.eureka: OFF
+    com.netflix.discovery: warn
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: info, health, metrics, prometheus
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
